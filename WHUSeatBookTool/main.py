@@ -1,6 +1,7 @@
-import SeatBook
+from SeatRobber import Robber
 
-username = input('请输入用户名: ')
-passwd = input('请输入密码: ')
-book = SeatBook.SeatBook(username=username, password=passwd)
-book.book()
+if __name__ == '__main__':
+	username = input('请输入用户名：')
+	password = input('请输入密码：')
+    robber = Robber(username=username, password=password)
+    robber.robber_seat()
