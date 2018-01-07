@@ -4,13 +4,14 @@ import time
 import requests
 
 from SetPeriod import TimeNode
+from SendEmail import send_email
 
 
 class Robber(object):
     """
     Robber类:实现抢座的核心功能类
     """
-    def __init__(self, username='', password=''):
+    def __init__(self, username='', password='', address=''):
         """
         初始化方法，接受用户名和密码
         1.初始化session
@@ -21,6 +22,7 @@ class Robber(object):
         self.sessions = requests.session()
         self.username = username
         self.password = password
+        self.address = address
         self.token = self.get_token_by_login()
         self.headers = {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
@@ -137,10 +139,15 @@ class Robber(object):
         if book['status'] == 'fail':
             print('预约失败')
             print('原因：'+book['message'])
+            #print(book)
+            send_email(self.address, '预约失败', time='原因', seat=book['message'])
         elif book['status'] == 'success':
             print('预约成功')
             print('时间：', book['data']['onDate'], book['data']['begin'], '--', book['data']['end'])
             print('地址：', book['data']['location'])
+            send_email(self.address, '预约成功',
+                       time='时间：' + book['data']['onDate'] + book['data']['begin'] + '--' + book['data']['end'],
+                       seat=book['data']['location'])
 
     @staticmethod
     def get_seats_info(room_seat_info):
