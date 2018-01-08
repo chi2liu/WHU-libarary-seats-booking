@@ -140,14 +140,23 @@ class Robber(object):
             print('预约失败')
             print('原因：'+book['message'])
             #print(book)
-            send_email(self.address, '预约失败', time='原因', seat=book['message'])
+            text = '----------预约失败---------'\
+                    + '原因: ' + book['message'] + '\n请重新尝试预约!'
+            send_email(self.address, '预约失败', content=text)
         elif book['status'] == 'success':
             print('预约成功')
             print('时间：', book['data']['onDate'], book['data']['begin'], '--', book['data']['end'])
             print('地址：', book['data']['location'])
+            # 构造邮件正文
+            text = '---------------------座位预约凭证----------------------'\
+                   + '\nID：' + str(book['data']['id']) + '\n凭证号码：' + \
+                   book['data']['receipt'] + '\n时间：' + book['data']['onDate'] + ' ' + book['data']['begin'] + '～' + \
+                   book['data']['end'] + '\n状态：' + ('已签到' if book['data']['checkedIn'] else '预约') + '\n地址：' + \
+                   book['data']['location'] + '\n-----------------------------------------------------' + \
+                   '\n\nPowered by Seat Robber'
+            print(text)
             send_email(self.address, '预约成功',
-                       time='时间：' + book['data']['onDate'] + book['data']['begin'] + '--' + book['data']['end'],
-                       seat=book['data']['location'])
+                       content=text)
 
     @staticmethod
     def get_seats_info(room_seat_info):
@@ -160,7 +169,7 @@ class Robber(object):
         res = []
         seat_keys = room_seat_info.keys()
         for key in seat_keys:
-            if room_seat_info[key]['type'] == 'empty':
+            if room_seat_info[key]['type'] != 'seat':
                 continue
             res.append(room_seat_info[key])
         return res
@@ -194,6 +203,7 @@ class Robber(object):
         seats = self.get_all_seats(room_list, end_time)
         print('正在为您搜索空闲座位，请稍候...')
         print('......')
+        print(seats)
         while not_found:
             for seat in seats:
                 if seat['status'] == 'FREE':
