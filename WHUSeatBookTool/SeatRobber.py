@@ -32,6 +32,58 @@ class Robber(object):
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KH'
                           'TML, like Gecko) Chrome/63.0.3239.84 Safari/537.36 '
         }
+        self.xin = {
+            4: '一楼3C创客空间',
+            5: '一楼创新学习讨论区',
+            6: '二楼西自然科学图书借阅区',
+            7: '二楼东自然科学图书借阅区',
+            8: '三楼西社会科学图书借阅区',
+            9: '四楼西图书阅览区',
+            10: '三楼东社会科学图书借阅区',
+            11: '四楼东图书阅览区',
+            12: '三楼自主学习区',
+            13: '3C创客-电子资源阅览区（20台）',
+            14: '3C创客-双屏电脑（20台）',
+            15: '创新学习-MAC电脑（12台）',
+            16: '创新学习-云桌面（42台）'
+        }
+
+        self.gong = {
+            19: '201室+东部自科图书借阅区',
+            29: '2楼+中部走廊',
+            31: '205室+中部电子阅览室笔记本区',
+            32: '301室+东部自科图书借阅区',
+            33: '305室+中部自科图书借阅区',
+            34: '401室+东部自科图书借阅区',
+            35: '405室+中部期刊阅览区',
+            37: '501室+东部外文图书借阅区',
+            38: '505室+中部自科图书借阅区'
+        }
+
+        self.yi = {
+            20: '204教学参考书借阅区',
+            21: '302中文科技图书借阅B区',
+            23: '305科技期刊阅览区',
+            24: '402中文文科图书借阅区',
+            26: '502外文图书借阅区',
+            27: '506医学人文阅览区',
+            28: '503培训教室'
+        }
+
+        self.zong = {
+            39: 'A1-座位区',
+            40: 'C1自习区',
+            51: 'A2',
+            52: 'A3',
+            56: 'B3',
+            59: 'B2',
+            60: 'A4',
+            61: 'A5',
+            62: 'A1-沙发区',
+            65: 'B1',
+            66: 'A1-苹果区'
+        }
+        self.rooms_of_lib = [self.xin, self.gong, self.yi, self.zong]
 
     def get_token_by_login(self, code: str = 'utf-8') -> str:
         """
@@ -52,11 +104,19 @@ class Robber(object):
             'Accept-Language': 'zh-CN,zh;q=0.9'
         }
         # 登录认证，获取token
-        resp = self.sessions.get(login_url, headers=login_headers)
-        resp.raise_for_status()
-        resp.encoding = code
-        data = json.loads(resp.text)
-        return data['data']['token']
+        try:
+            resp = self.sessions.get(login_url, headers=login_headers)
+            resp.raise_for_status()
+            resp.encoding = code
+            data = json.loads(resp.text)
+        except Exception:
+            print('登录失败！')
+            return 'login failed!'
+        else:
+            if data['status'] == 'fail':
+                print(data['message'])
+                raise SystemExit
+            return data['data']['token']
 
     def get_response_json(self, url: str, code: str = 'utf-8') -> dict:
         """
@@ -65,35 +125,41 @@ class Robber(object):
         :param code: 编码
         :return: 返回response的json
         """
-        resp = self.sessions.get(url=url, headers=self.headers)
-        resp.raise_for_status()
-        resp.encoding = code
-        return json.loads(resp.text)
+        try:
+            resp = self.sessions.get(url=url, headers=self.headers)
+            resp.raise_for_status()
+            resp.encoding = code
+            json_str = json.loads(resp.text)
+        except Exception:
+            print('连接座位系统服务器出现错误，请稍后重试！')
+            return 'network wrong!'
+        else:
+            return json_str
 
-    def get_rooms_of_lib(self, lib_selected):
-        """
-        获取指定场馆的房间信息
-        :param lib_selected: 用户输入的所选择的预约场馆的编号
-        :return: 返回该场馆的房间信息
-        """
-        libs_info = self.get_response_json(url='http://seat.lib.whu.edu.cn/rest/v2/free/filters')
-        rooms = []
-        for room in libs_info['data']['rooms']:
-            if room[2] == int(lib_selected):
-                rooms.append({room[0]: room[1]})
-        return rooms
 
-    @staticmethod
-    def print_rooms(rooms):
+    # def get_rooms_of_lib(self, lib_selected):
+    #     """
+    #     获取指定场馆的房间信息
+    #     :param lib_selected: 用户输入的所选择的预约场馆的编号
+    #     :return: 返回该场馆的房间信息
+    #     """
+    #     libs_info = self.get_response_json(url='http://seat.lib.whu.edu.cn/rest/v2/free/filters')
+    #     rooms = []
+    #     for room in libs_info['data']['rooms']:
+    #         if room[2] == int(lib_selected):
+    #             rooms.append({room[0]: room[1]})
+    #     return rooms
+
+    def print_rooms(self, lib_selected):
         """
         打印出房间信息，供用户选择
         编号：房间名
         :param rooms: 指定场馆的房间信息，list
         :return: 无返回值
         """
-        for room in rooms:
-            for key in room.keys():
-                print(str(key) + ':' + room[key])
+        room = self.rooms_of_lib[int(lib_selected)-1]
+        for key in room.keys():
+            print(str(key) + ' : ' + room[key])
 
     def set_rooms(self) -> list:
         """
@@ -108,8 +174,7 @@ class Robber(object):
 
         lib = input('输入您要预约的图书馆的编号： ')
         print('-------------------------------')
-        rooms = self.get_rooms_of_lib(lib)
-        self.print_rooms(rooms)
+        self.print_rooms(lib)
         print('--------------------')
         book_rooms = input('请输入您需要预约的房间的编号（可以输入多个，请用空格隔开，如：8 9 12）:\n')
         rooms_selected = book_rooms.split(' ')
@@ -137,26 +202,23 @@ class Robber(object):
         resp = self.sessions.post('http://seat.lib.whu.edu.cn/rest/v2/freeBook', headers=self.headers, data=data)
         book = json.loads(resp.text)
         if book['status'] == 'fail':
-            print('预约失败')
-            print('原因：'+book['message'])
-            #print(book)
-            text = '----------预约失败---------'\
-                    + '原因: ' + book['message'] + '\n请重新尝试预约!'
-            send_email(self.address, '预约失败', content=text)
+            text = '欢迎使用武汉大学图书馆自动抢座预约神器，支持全部四个图书馆的抢座'\
+                   '\n预约结果: 预约失败'\
+                   '\n失败原因: ' + book['message']
+            send_email(self.address, '武汉大学预约系统通知', content=text)
         elif book['status'] == 'success':
-            print('预约成功')
-            print('时间：', book['data']['onDate'], book['data']['begin'], '--', book['data']['end'])
-            print('地址：', book['data']['location'])
             # 构造邮件正文
-            text = '---------------------座位预约凭证----------------------'\
+            text = '欢迎使用武汉大学图书馆自动抢座预约神器，支持全部四个图书馆的抢座'\
+                   '\n预约结果: 预约成功'\
+                   '\n---------------------座位预约凭证----------------------'\
                    + '\nID：' + str(book['data']['id']) + '\n凭证号码：' + \
                    book['data']['receipt'] + '\n时间：' + book['data']['onDate'] + ' ' + book['data']['begin'] + '～' + \
                    book['data']['end'] + '\n状态：' + ('已签到' if book['data']['checkedIn'] else '预约') + '\n地址：' + \
                    book['data']['location'] + '\n-----------------------------------------------------' + \
                    '\n\nPowered by Seat Robber'
-            print(text)
-            send_email(self.address, '预约成功',
+            send_email(self.address, '武汉大学预约系统通知',
                        content=text)
+        print(text)
 
     @staticmethod
     def get_seats_info(room_seat_info):
@@ -181,12 +243,12 @@ class Robber(object):
         :param end_time: 指定的结束时间
         :return: 返回所有房间的座位信息的列表
         """
+        time.sleep(len(rooms_selected))
         all_seats = []
         for room in rooms_selected:
             room_search_url = 'http://seat.lib.whu.edu.cn/rest/v2/room/layoutByEndMinutes/' + room + '/' + end_time
             room_seat_info = self.get_response_json(url=room_search_url)['data']['layout']
             all_seats += self.get_seats_info(room_seat_info)
-            time.sleep(1)
         return all_seats
 
     def search_seat(self, room_list, start_time, end_time):
@@ -203,7 +265,6 @@ class Robber(object):
         seats = self.get_all_seats(room_list, end_time)
         print('正在为您搜索空闲座位，请稍候...')
         print('......')
-        print(seats)
         while not_found:
             for seat in seats:
                 if seat['status'] == 'FREE':
@@ -214,7 +275,7 @@ class Robber(object):
                 print('当前暂时没有空闲座位...正在为您继续搜索第', num, '次...请耐心等待')
                 print('......')
                 num = num + 1
-                time.sleep(1)
+                # time.sleep(1)
                 count = (count + 1) * len(room_list)
                 if count > 30:
                     print('为了避免被系统加入黑名单，将暂停15s后继续为您搜索')
