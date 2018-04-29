@@ -205,7 +205,6 @@ class Robber(object):
             text = '欢迎使用武汉大学图书馆自动抢座预约神器，支持全部四个图书馆的抢座'\
                    '\n预约结果: 预约失败'\
                    '\n失败原因: ' + book['message']
-            send_email(self.address, '武汉大学预约系统通知', content=text)
         elif book['status'] == 'success':
             # 构造邮件正文
             text = '欢迎使用武汉大学图书馆自动抢座预约神器，支持全部四个图书馆的抢座'\
@@ -216,9 +215,9 @@ class Robber(object):
                    book['data']['end'] + '\n状态：' + ('已签到' if book['data']['checkedIn'] else '预约') + '\n地址：' + \
                    book['data']['location'] + '\n-----------------------------------------------------' + \
                    '\n\nPowered by Seat Robber'
-            send_email(self.address, '武汉大学预约系统通知',
-                       content=text)
         print(text)
+        send_email(self.address, '武汉大学预约系统通知',
+                   content=text)
 
     @staticmethod
     def get_seats_info(room_seat_info):
@@ -251,7 +250,14 @@ class Robber(object):
             all_seats += self.get_seats_info(room_seat_info)
         return all_seats
 
-    def search_seat(self, room_list, start_time, end_time):
+    def get_seats_range(self):
+        start = input('输入您要预约的座位号的起始编号： ')
+        print('-------------------------------')
+        end = input('输入您要预约的座位号的终止编号： ')
+        print('-------------------------------')
+        return int(start), int(end)
+
+    def search_seat(self, room_list, start_time, end_time, start_seat, end_seat):
         """
         从指定的房间列表中搜索空闲座位，并预约
         :param room_list: 指定需要预约的房间列表
@@ -267,7 +273,9 @@ class Robber(object):
         print('......')
         while not_found:
             for seat in seats:
-                if seat['status'] == 'FREE':
+                if int(seat['name']) >= start_seat \
+                and int(seat['name']) <= end_seat \
+                and seat['status'] == 'FREE':
                     self.book_free_seat(start_time, end_time, seat['id'])
                     not_found = False
                     break
@@ -292,7 +300,9 @@ class Robber(object):
         time_node = TimeNode()
         start_time, end_time = time_node.set_start_and_end_time_node()
 
+        start_seat, end_seat = self.get_seats_range()
+
         print('信息收集完成，开始为您搜索空闲座位，请稍候...')
         print('-------------------------------')
 
-        self.search_seat(room_list, start_time, end_time)
+        self.search_seat(room_list, start_time, end_time, start_seat, end_seat)
